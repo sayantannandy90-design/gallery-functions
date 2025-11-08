@@ -1,7 +1,4 @@
-export default async function (context, req) {
-  context.res = {
-    status: 200,
-    body: { ok: true, message: "import fetch from "node-fetch";
+import fetch from "node-fetch";
 import {
   BlobServiceClient,
   generateBlobSASQueryParameters,
@@ -29,12 +26,11 @@ export default async function (context, req) {
       return;
     }
 
-    // 🔹 build blob client
+    // Blob
     const blobService = BlobServiceClient.fromConnectionString(STORAGE_CONNECTION_STRING);
     const containerClient = blobService.getContainerClient(STORAGE_CONTAINER);
     const blobClient = containerClient.getBlobClient(`${album}/${name}`);
 
-    // 🔹 Create SAS for reading blob
     const { accountName, accountKey } = parseConnString(STORAGE_CONNECTION_STRING);
     const sharedKey = new StorageSharedKeyCredential(accountName, accountKey);
     const expiresOn = new Date(Date.now() + Number(SAS_READ_EXPIRY_MINUTES) * 60 * 1000);
@@ -50,7 +46,7 @@ export default async function (context, req) {
 
     const blobSasUrl = `${blobClient.url}?${sas}`;
 
-    // 🔹 Send to Vision API
+    // Vision
     const visionUrl = `${VISION_ENDPOINT}vision/v3.2/analyze?visualFeatures=Tags,Description`;
     const visionRes = await fetch(visionUrl, {
       method: "POST",
@@ -71,7 +67,6 @@ export default async function (context, req) {
     const tags = (vision.tags || []).map(t => t.name);
     const caption = vision.description?.captions?.[0]?.text || null;
 
-    // 🔹 Build metadata record
     const doc = {
       id: `${album}::${name}`,
       album,
@@ -82,7 +77,6 @@ export default async function (context, req) {
       createdAt: new Date().toISOString()
     };
 
-    // 🔹 Save to Cosmos
     await container.items.upsert(doc);
 
     context.res = { status: 200, body: { ok: true, doc } };
@@ -93,11 +87,7 @@ export default async function (context, req) {
   }
 };
 
-// Helper
 function parseConnString(cs) {
   const parts = Object.fromEntries(cs.split(";").map(p => p.split("=")));
   return { accountName: parts.AccountName, accountKey: parts.AccountKey };
-}
-" }
-  };
 }
