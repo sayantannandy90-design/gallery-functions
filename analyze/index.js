@@ -74,7 +74,7 @@ export default async function (context, req) {
       id: `${album}::${name}`,
       album,
       name,
-      url: blobClient.url,
+      url: blobSasUrl,
       tags,
       caption,
       createdAt: new Date().toISOString()
