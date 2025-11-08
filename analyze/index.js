@@ -26,11 +26,12 @@ export default async function (context, req) {
       return;
     }
 
-    // Blob
+    // Build blob client
     const blobService = BlobServiceClient.fromConnectionString(STORAGE_CONNECTION_STRING);
     const containerClient = blobService.getContainerClient(STORAGE_CONTAINER);
     const blobClient = containerClient.getBlobClient(`${album}/${name}`);
 
+    // Build SAS token
     const { accountName, accountKey } = parseConnString(STORAGE_CONNECTION_STRING);
     const sharedKey = new StorageSharedKeyCredential(accountName, accountKey);
     const expiresOn = new Date(Date.now() + Number(SAS_READ_EXPIRY_MINUTES) * 60 * 1000);
@@ -46,8 +47,9 @@ export default async function (context, req) {
 
     const blobSasUrl = `${blobClient.url}?${sas}`;
 
-    // Vision
+    // Vision API
     const visionUrl = `${VISION_ENDPOINT}vision/v3.2/analyze?visualFeatures=Tags,Description`;
+
     const visionRes = await fetch(visionUrl, {
       method: "POST",
       headers: {
@@ -67,6 +69,7 @@ export default async function (context, req) {
     const tags = (vision.tags || []).map(t => t.name);
     const caption = vision.description?.captions?.[0]?.text || null;
 
+    // Save to Cosmos
     const doc = {
       id: `${album}::${name}`,
       album,
